@@ -1,0 +1,5 @@
+module simpleVertexAnalysis = PrimaryVertexAnalyzer { 
+     InputTag simG4 = g4SimHits
+     untracked string outputFile="simpleVertexAnalyzer.root"
+     untracked bool verbose=true
+}
