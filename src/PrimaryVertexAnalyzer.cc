@@ -2,6 +2,7 @@
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include "FWCore/Utilities/interface/Exception.h"
 
 // reco track and vertex 
 #include "DataFormats/TrackReco/interface/Track.h"
@@ -55,13 +56,27 @@ PrimaryVertexAnalyzer::PrimaryVertexAnalyzer(const ParameterSet& iConfig)
   recoTrackProducer_= iConfig.getUntrackedParameter<std::string>("recoTrackProducer");
   // open output file to store histograms}
   outputFile_  = iConfig.getUntrackedParameter<std::string>("outputFile");
-  vtxSample_   = iConfig.getUntrackedParameter<std::string>("vtxSample");
+  TString tversion(edm::getReleaseVersion());
+  tversion = tversion.Remove(0,1);
+  tversion = tversion.Remove(tversion.Length()-1,tversion.Length());
+  outputFile_  = std::string(tversion)+"_"+outputFile_;
+
+  vtxSample_   = iConfig.getUntrackedParameter<std::vector<std::string> >("vtxSample");
+  for(std::vector<std::string>::iterator isample = vtxSample_.begin(); isample!=vtxSample_.end(); ++isample) {
+    if ( *isample == "offlinePrimaryVerticesFromCTFTracksAVF" ) suffixSample_.push_back("AVF");
+    if ( *isample == "offlinePrimaryVerticesFromCTFTracksKVF" ) suffixSample_.push_back("KVF");
+    if ( *isample == "offlinePrimaryVerticesFromCTFTracksTKF" ) suffixSample_.push_back("TKF");
+  }
+  
+  if ( suffixSample_.size() == 0 ) throw cms::Exception("NoVertexSamples") << " no known vertex samples given";
+
   rootFile_ = TFile::Open(outputFile_.c_str(),"RECREATE");
   verbose_= iConfig.getUntrackedParameter<bool>("verbose", false);
   simUnit_= 1.0;  // starting with CMSSW_1_2_x ??
   if ( (edm::getReleaseVersion()).find("CMSSW_1_1_",0)!=std::string::npos){
     simUnit_=0.1;  // for use in  CMSSW_1_1_1 tutorial
   }
+
 }
 
 
@@ -89,44 +104,46 @@ void PrimaryVertexAnalyzer::beginJob(edm::EventSetup const& iSetup){
 
   rootFile_->cd();
   // release validation histograms used in DoCompare.C
-  h["nbvtx"]        = new TH1F("nbvtx","nb rec vertices in event",20,-0.5,19.5);
-  h["nbtksinvtx"]   = new TH1F("nbtksinvtx","reconstructed tracks in vertex",40,-0.5,39.5); 
-  h["resx"]         = new TH1F("resx","residual x",100,-0.04,0.04);
-  h["resy"]         = new TH1F("resy","residual y",100,-0.04,0.04);
-  h["resz"]         = new TH1F("resz","residual z",100,-0.1,0.1);
-  h["pullx"]        = new TH1F("pullx","pull x",100,-25.,25.);
-  h["pully"]        = new TH1F("pully","pull y",100,-25.,25.);
-  h["pullz"]        = new TH1F("pullz","pull z",100,-25.,25.);
-  h["vtxchi2"]      = new TH1F("vtxchi2","chi squared",100,0.,100.);
-  h["vtxndf"]       = new TH1F("vtxndf","degrees of freedom",100,0.,100.);
-  h["tklinks"]      = new TH1F("tklinks","Usable track links",2,-0.5,1.5);
-  h["nans"]         = new TH1F("nans","Illegal values for x,y,z,xx,xy,xz,yy,yz,zz",9,0.5,9.5);
+  for (std::vector<std::string>::iterator isuffix= suffixSample_.begin(); isuffix!=suffixSample_.end(); ++isuffix++) {
+  h["nbvtx"+ *isuffix]        = new TH1F(TString("nbvtx"+ *isuffix),"nb rec vertices in event",20,-0.5,19.5);
+  h["nbtksinvtx"+ *isuffix]   = new TH1F(TString("nbtksinvtx"+ *isuffix),"reconstructed tracks in vertex",40,-0.5,39.5); 
+  h["resx"+ *isuffix]         = new TH1F(TString("resx"+ *isuffix),"residual x",100,-0.04,0.04);
+  h["resy"+ *isuffix]         = new TH1F(TString("resy"+ *isuffix),"residual y",100,-0.04,0.04);
+  h["resz"+ *isuffix]         = new TH1F(TString("resz"+ *isuffix),"residual z",100,-0.1,0.1);
+  h["pullx"+ *isuffix]        = new TH1F(TString("pullx"+ *isuffix),"pull x",100,-25.,25.);
+  h["pully"+ *isuffix]        = new TH1F(TString("pully"+ *isuffix),"pull y",100,-25.,25.);
+  h["pullz"+ *isuffix]        = new TH1F(TString("pullz"+ *isuffix),"pull z",100,-25.,25.);
+  h["vtxchi2"+ *isuffix]      = new TH1F(TString("vtxchi2"+ *isuffix),"chi squared",100,0.,100.);
+  h["vtxndf"+ *isuffix]       = new TH1F(TString("vtxndf"+ *isuffix),"degrees of freedom",100,0.,100.);
+  h["tklinks"+ *isuffix]      = new TH1F(TString("tklinks"+ *isuffix),"Usable track links",2,-0.5,1.5);
+  h["nans"+ *isuffix]         = new TH1F(TString("nans"+ *isuffix),"Illegal values for x,y,z,xx,xy,xz,yy,yz,zz",9,0.5,9.5);
   // more histograms
-  h["vtxprob"]      = new TH1F("vtxprob","chisquared probability",100,0.,1.);
-  h["eff"]          = new TH1F("eff","efficiency",2, -0.5, 1.5);
-  h["efftag"]       = new TH1F("efftag","efficiency tagged vertex",2, -0.5, 1.5);
-  h["effvseta"]     = new TProfile("effvseta","efficiency vs eta",20, -2.5, 2.5, 0, 1.);
-  h["effvsptsq"]    = new TProfile("effvsptsq","efficiency vs ptsq",20, 0., 10000., 0, 1.);
-  h["effvsntrk"]    = new TProfile("effvsntrk","efficiency vs # tracks",50, 0., 50., 0, 1.);
-  h["effvsnrectrk"] = new TProfile("effvsnrectrk","efficiency vs # rectracks",50, 0., 50., 0, 1.);
-  h["effvsz"]       = new TProfile("effvsz","efficiency vs z",40, -20., 20., 0, 1.);
-  h["nbsimtksinvtx"]= new TH1F("nbsimtksinvtx","simulated tracks in vertex",100,-0.5,99.5); 
-  h["xrec"]         = new TH1F("xrec","reconstructed x",100,-0.01,0.01);
-  h["yrec"]         = new TH1F("yrec","reconstructed y",100,-0.01,0.01);
-  h["zrec"]         = new TH1F("zrec","reconstructed z",100,-20.,20.);
-  h["xsim"]         = new TH1F("xsim","simulated x",100,-0.01,0.01); // 0.01cm = 100 um
-  h["ysim"]         = new TH1F("ysim","simulated y",100,-0.01,0.01);
-  h["zsim"]         = new TH1F("zsim","simulated z",100,-20.,20.);
-  h["nrecvtx"]      = new TH1F("nrecvtx","# of reconstructed vertices", 50, -0.5, 49.5);
-  h["nsimvtx"]      = new TH1F("nsimvtx","# of simulated vertices", 50, -0.5, 49.5);
-  h["nrectrk"]      = new TH1F("nrectrk","# of reconstructed tracks", 50, -0.5, 49.5);
-  h["nsimtrk"]      = new TH1F("nsimtrk","# of simulated tracks", 50, -0.5, 49.5);
-  h["xrectag"]      = new TH1F("xrectag","reconstructed x, signal vtx",100,-0.01,0.01);
-  h["yrectag"]      = new TH1F("yrectag","reconstructed y, signal vtx",100,-0.01,0.01);
-  h["zrectag"]      = new TH1F("zrectag","reconstructed z, signal vtx",100,-20.,20.);
-  h["rapidity"] = new TH1F("rapidity","rapidity ",100,-10., 10.);
-  h["pt"] = new TH1F("pt","pt ",100,0., 20.);
-  h["nrectrk0vtx"] = new TH1F("nrectrk0vtx","# rec tracks no vertex ",50,0., 50.);
+  h["vtxprob"+ *isuffix]      = new TH1F(TString("vtxprob"+ *isuffix),"chisquared probability",100,0.,1.);
+  h["eff"+ *isuffix]          = new TH1F(TString("eff"+ *isuffix),"efficiency",2, -0.5, 1.5);
+  h["efftag"+ *isuffix]       = new TH1F(TString("efftag"+ *isuffix),"efficiency tagged vertex",2, -0.5, 1.5);
+  h["effvseta"+ *isuffix]     = new TProfile(TString("effvseta"+ *isuffix),"efficiency vs eta",20, -2.5, 2.5, 0, 1.);
+  h["effvsptsq"+ *isuffix]    = new TProfile(TString("effvsptsq"+ *isuffix),"efficiency vs ptsq",20, 0., 10000., 0, 1.);
+  h["effvsntrk"+ *isuffix]    = new TProfile(TString("effvsntrk"+ *isuffix),"efficiency vs # tracks",50, 0., 50., 0, 1.);
+  h["effvsnrectrk"+ *isuffix] = new TProfile(TString("effvsnrectrk"+ *isuffix),"efficiency vs # rectracks",50, 0., 50., 0, 1.);
+  h["effvsz"+ *isuffix]       = new TProfile(TString("effvsz"+ *isuffix),"efficiency vs z",40, -20., 20., 0, 1.);
+  h["nbsimtksinvtx"+ *isuffix]= new TH1F(TString("nbsimtksinvtx"+ *isuffix),"simulated tracks in vertex",100,-0.5,99.5); 
+  h["xrec"+ *isuffix]         = new TH1F(TString("xrec"+ *isuffix),"reconstructed x",100,-0.01,0.01);
+  h["yrec"+ *isuffix]         = new TH1F(TString("yrec"+ *isuffix),"reconstructed y",100,-0.01,0.01);
+  h["zrec"+ *isuffix]         = new TH1F(TString("zrec"+ *isuffix),"reconstructed z",100,-20.,20.);
+  h["xsim"+ *isuffix]         = new TH1F(TString("xsim"+ *isuffix),"simulated x",100,-0.01,0.01); // 0.01cm = 100 um
+  h["ysim"+ *isuffix]         = new TH1F(TString("ysim"+ *isuffix),"simulated y",100,-0.01,0.01);
+  h["zsim"+ *isuffix]         = new TH1F(TString("zsim"+ *isuffix),"simulated z",100,-20.,20.);
+  h["nrecvtx"+ *isuffix]      = new TH1F(TString("nrecvtx"+ *isuffix),"# of reconstructed vertices", 50, -0.5, 49.5);
+  h["nsimvtx"+ *isuffix]      = new TH1F(TString("nsimvtx"+ *isuffix),"# of simulated vertices", 50, -0.5, 49.5);
+  h["nrectrk"+ *isuffix]      = new TH1F(TString("nrectrk"+ *isuffix),"# of reconstructed tracks", 50, -0.5, 49.5);
+  h["nsimtrk"+ *isuffix]      = new TH1F(TString("nsimtrk"+ *isuffix),"# of simulated tracks", 50, -0.5, 49.5);
+  h["xrectag"+ *isuffix]      = new TH1F(TString("xrectag"+ *isuffix),"reconstructed x, signal vtx",100,-0.01,0.01);
+  h["yrectag"+ *isuffix]      = new TH1F(TString("yrectag"+ *isuffix),"reconstructed y, signal vtx",100,-0.01,0.01);
+  h["zrectag"+ *isuffix]      = new TH1F(TString("zrectag"+ *isuffix),"reconstructed z, signal vtx",100,-20.,20.);
+  h["rapidity"+ *isuffix] = new TH1F(TString("rapidity"+ *isuffix),"rapidity ",100,-10., 10.);
+  h["pt"+ *isuffix] = new TH1F(TString("pt"+ *isuffix),"pt ",100,0., 20.);
+  h["nrectrk0vtx"+ *isuffix] = new TH1F(TString("nrectrk0vtx"+ *isuffix),"# rec tracks no vertex ",50,0., 50.);
+  }
 }
 
 
@@ -224,7 +241,7 @@ void PrimaryVertexAnalyzer::printSimTrks(const Handle<SimTrackContainer> simTrks
 
 
 std::vector<PrimaryVertexAnalyzer::simPrimaryVertex> PrimaryVertexAnalyzer::getSimPVs(
-				      const Handle<HepMCProduct> evtMC)
+				      const Handle<HepMCProduct> evtMC, std::string suffix="")
 {
   std::vector<PrimaryVertexAnalyzer::simPrimaryVertex> simpv;
   const HepMC::GenEvent* evt=evtMC->GetEvent();
@@ -308,8 +325,8 @@ std::vector<PrimaryVertexAnalyzer::simPrimaryVertex> PrimaryVertexAnalyzer::getS
 		   && (HepPDT::theTable().getParticleData((*daughter)->pdg_id())->charge() != 0)){
 		vp->nGenTrk++;
 	      }
-	      h["rapidity"]->Fill(m.rapidity());
-	      h["pt"]->Fill(m.perp());
+	      h["rapidity"+suffix]->Fill(m.rapidity());
+	      h["pt"+suffix]->Fill(m.perp());
 	    }
 	    //std::cout << (*daughter)->barcode() << "\t";
 	  }
@@ -398,9 +415,6 @@ void
 PrimaryVertexAnalyzer::analyze(const Event& iEvent, const EventSetup& iSetup)
 {
   
-  Handle<reco::VertexCollection> recVtxs;
-  iEvent.getByLabel(vtxSample_, recVtxs);
-  
   Handle<reco::TrackCollection> recTrks;
   iEvent.getByLabel(recoTrackProducer_, recTrks);
 
@@ -409,6 +423,13 @@ PrimaryVertexAnalyzer::analyze(const Event& iEvent, const EventSetup& iSetup)
   
   Handle<SimTrackContainer> simTrks;
   iEvent.getByLabel( simG4_, simTrks);
+
+  for (int ivtxSample=0; ivtxSample!= (int)vtxSample_.size(); ++ivtxSample) {
+    std::string isuffix = suffixSample_[ivtxSample];
+
+  Handle<reco::VertexCollection> recVtxs;
+  iEvent.getByLabel(vtxSample_[ivtxSample], recVtxs);
+
 
   bool MC=false;
   Handle<HepMCProduct> evtMC;
@@ -456,7 +477,7 @@ PrimaryVertexAnalyzer::analyze(const Event& iEvent, const EventSetup& iSetup)
    // make a list of primary vertices:
    std::vector<simPrimaryVertex> simpv;
    //simpv=getSimPVs(evtMC, simVtxs, simTrks);
-   simpv=getSimPVs(evtMC);
+   simpv=getSimPVs(evtMC,isuffix);
 
    /*
    if(verbose_){
@@ -472,15 +493,15 @@ PrimaryVertexAnalyzer::analyze(const Event& iEvent, const EventSetup& iSetup)
    */
 
    // vertex matching and efficiency bookkeeping
-   h["nsimvtx"]->Fill(simpv.size());
+   h["nsimvtx"+isuffix]->Fill(simpv.size());
    int nsimtrk=0;
    for(std::vector<simPrimaryVertex>::iterator vsim=simpv.begin();
        vsim!=simpv.end(); vsim++){
      
-     h["nbsimtksinvtx"]->Fill(vsim->nGenTrk);
-     h["xsim"]->Fill(vsim->x*simUnit_);
-     h["ysim"]->Fill(vsim->y*simUnit_);
-     h["zsim"]->Fill(vsim->z*simUnit_);
+     h["nbsimtksinvtx"+isuffix]->Fill(vsim->nGenTrk);
+     h["xsim"+isuffix]->Fill(vsim->x*simUnit_);
+     h["ysim"+isuffix]->Fill(vsim->y*simUnit_);
+     h["zsim"+isuffix]->Fill(vsim->z*simUnit_);
      nsimtrk+=vsim->nGenTrk;
      // look for a matching reconstructed vertex
      vsim->recVtx=NULL;
@@ -495,7 +516,7 @@ PrimaryVertexAnalyzer::analyze(const Event& iEvent, const EventSetup& iSetup)
 	   }
        }
      }
-     h["nsimtrk"]->Fill(float(nsimtrk));
+     h["nsimtrk"+isuffix]->Fill(float(nsimtrk));
      
        
      // histogram properties of matched vertices
@@ -503,31 +524,31 @@ PrimaryVertexAnalyzer::analyze(const Event& iEvent, const EventSetup& iSetup)
        
        if(verbose_){std::cout <<"primary matched " << vsim->x << " " << vsim->y << " " << vsim->z << std:: endl;}
        
-       h["resx"]->Fill( vsim->recVtx->x()-vsim->x*simUnit_ );
-       h["resy"]->Fill( vsim->recVtx->y()-vsim->y*simUnit_ );
-       h["resz"]->Fill( vsim->recVtx->z()-vsim->z*simUnit_ );
-       h["pullx"]->Fill( (vsim->recVtx->x()-vsim->x*simUnit_)/vsim->recVtx->xError() );
-       h["pully"]->Fill( (vsim->recVtx->y()-vsim->y*simUnit_)/vsim->recVtx->yError() );
-       h["pullz"]->Fill( (vsim->recVtx->z()-vsim->z*simUnit_)/vsim->recVtx->zError() );
-       h["eff"]->Fill( 1.);
-       if((simpv.size()==1)&&(vsim->recVtx==&(*recVtxs->begin()))){ h["efftag"]->Fill( 1.); }
-       h["effvseta"]->Fill(vsim->ptot.rapidity(),1.);
-       h["effvsptsq"]->Fill(vsim->ptsq,1.);
-       h["effvsntrk"]->Fill(vsim->nGenTrk,1.);
-       h["effvsnrectrk"]->Fill(recTrks->size(),1.);
-       h["effvsz"]->Fill(vsim->z*simUnit_,1.);
+       h["resx"+isuffix]->Fill( vsim->recVtx->x()-vsim->x*simUnit_ );
+       h["resy"+isuffix]->Fill( vsim->recVtx->y()-vsim->y*simUnit_ );
+       h["resz"+isuffix]->Fill( vsim->recVtx->z()-vsim->z*simUnit_ );
+       h["pullx"+isuffix]->Fill( (vsim->recVtx->x()-vsim->x*simUnit_)/vsim->recVtx->xError() );
+       h["pully"+isuffix]->Fill( (vsim->recVtx->y()-vsim->y*simUnit_)/vsim->recVtx->yError() );
+       h["pullz"+isuffix]->Fill( (vsim->recVtx->z()-vsim->z*simUnit_)/vsim->recVtx->zError() );
+       h["eff"+isuffix]->Fill( 1.);
+       if((simpv.size()==1)&&(vsim->recVtx==&(*recVtxs->begin()))){ h["efftag"+isuffix]->Fill( 1.); }
+       h["effvseta"+isuffix]->Fill(vsim->ptot.rapidity(),1.);
+       h["effvsptsq"+isuffix]->Fill(vsim->ptsq,1.);
+       h["effvsntrk"+isuffix]->Fill(vsim->nGenTrk,1.);
+       h["effvsnrectrk"+isuffix]->Fill(recTrks->size(),1.);
+       h["effvsz"+isuffix]->Fill(vsim->z*simUnit_,1.);
        
      }else{  // no rec vertex found for this simvertex
        
        if(verbose_){std::cout <<"primary not found " << vsim->x << " " << vsim->y << " " << vsim->z << " nGenTrk=" << vsim->nGenTrk << std::endl;}
 
-       h["eff"]->Fill( 0.);
-       if((simpv.size()==1)&&(vsim->recVtx==&(*recVtxs->begin()))){ h["efftag"]->Fill( 0.); }
-       h["effvseta"]->Fill(vsim->ptot.rapidity(),0.);
-       h["effvsptsq"]->Fill(vsim->ptsq,0.);
-       h["effvsntrk"]->Fill(float(vsim->nGenTrk),0.);
-       h["effvsnrectrk"]->Fill(recTrks->size(),0.);
-       h["effvsz"]->Fill(vsim->z*simUnit_,0.);
+       h["eff"+isuffix]->Fill( 0.);
+       if((simpv.size()==1)&&(vsim->recVtx==&(*recVtxs->begin()))){ h["efftag"+isuffix]->Fill( 0.); }
+       h["effvseta"+isuffix]->Fill(vsim->ptot.rapidity(),0.);
+       h["effvsptsq"+isuffix]->Fill(vsim->ptsq,0.);
+       h["effvsntrk"+isuffix]->Fill(float(vsim->nGenTrk),0.);
+       h["effvsnrectrk"+isuffix]->Fill(recTrks->size(),0.);
+       h["effvsz"+isuffix]->Fill(vsim->z*simUnit_,0.);
      }
    }
   }//found MC event
@@ -537,9 +558,9 @@ PrimaryVertexAnalyzer::analyze(const Event& iEvent, const EventSetup& iSetup)
 
   // test track links, use reconstructed vertices
 
-  h["nrecvtx"]->Fill(recVtxs->size());
-  h["nrectrk"]->Fill(recTrks->size());
-  if(recVtxs->size()==0) {h["nrectrk0vtx"]->Fill(recTrks->size());}
+  h["nrecvtx"+isuffix]->Fill(recVtxs->size());
+  h["nrectrk"+isuffix]->Fill(recTrks->size());
+  if(recVtxs->size()==0) {h["nrectrk0vtx"+isuffix]->Fill(recTrks->size());}
 
   for(reco::VertexCollection::const_iterator v=recVtxs->begin(); 
       v!=recVtxs->end(); ++v){
@@ -549,46 +570,46 @@ PrimaryVertexAnalyzer::analyze(const Event& iEvent, const EventSetup& iSetup)
 	  t!=v->tracks_end(); t++) {
 	// illegal charge
         if ( (**t).charge() < -1 || (**t).charge() > 1 ) {
-	  h["tklinks"]->Fill(0.);
+	  h["tklinks"+isuffix]->Fill(0.);
         }
         else {
-	  h["tklinks"]->Fill(1.);
+	  h["tklinks"+isuffix]->Fill(1.);
         }
       }
     }
     catch (...) {
       // exception thrown when trying to use linked track
-      h["tklinks"]->Fill(0.);
+      h["tklinks"+isuffix]->Fill(0.);
     }
 
-    h["nbvtx"]->Fill(recVtxs->size()*1.);
-    h["nbtksinvtx"]->Fill(v->tracksSize());
-    h["vtxchi2"]->Fill(v->chi2());
-    h["vtxndf"]->Fill(v->ndof());
-    h["vtxprob"]->Fill(ChiSquaredProbability(v->chi2() ,v->ndof()));
-    h["xrec"]->Fill(v->position().x());
-    h["yrec"]->Fill(v->position().y());
-    h["zrec"]->Fill(v->position().z());
+    h["nbvtx"+isuffix]->Fill(recVtxs->size()*1.);
+    h["nbtksinvtx"+isuffix]->Fill(v->tracksSize());
+    h["vtxchi2"+isuffix]->Fill(v->chi2());
+    h["vtxndf"+isuffix]->Fill(v->ndof());
+    h["vtxprob"+isuffix]->Fill(ChiSquaredProbability(v->chi2() ,v->ndof()));
+    h["xrec"+isuffix]->Fill(v->position().x());
+    h["yrec"+isuffix]->Fill(v->position().y());
+    h["zrec"+isuffix]->Fill(v->position().z());
     if (v==recVtxs->begin()){
-      h["xrectag"]->Fill(v->position().x());
-      h["yrectag"]->Fill(v->position().y());
-      h["zrectag"]->Fill(v->position().z());
+      h["xrectag"+isuffix]->Fill(v->position().x());
+      h["yrectag"+isuffix]->Fill(v->position().y());
+      h["zrectag"+isuffix]->Fill(v->position().z());
     }
 
     bool problem = false;
-    h["nans"]->Fill(1.,isnan(v->position().x())*1.);
-    h["nans"]->Fill(2.,isnan(v->position().y())*1.);
-    h["nans"]->Fill(3.,isnan(v->position().z())*1.);
+    h["nans"+isuffix]->Fill(1.,isnan(v->position().x())*1.);
+    h["nans"+isuffix]->Fill(2.,isnan(v->position().y())*1.);
+    h["nans"+isuffix]->Fill(3.,isnan(v->position().z())*1.);
 
     int index = 3;
     for (int i = 0; i != 3; i++) {
       for (int j = i; j != 3; j++) {
 	index++;
-	h["nans"]->Fill(index*1., isnan(v->covariance(i, j))*1.);
+	h["nans"+isuffix]->Fill(index*1., isnan(v->covariance(i, j))*1.);
 	if (isnan(v->covariance(i, j))) problem = true;
 	// in addition, diagonal element must be positive
 	if (j == i && v->covariance(i, j) < 0) {
-	  h["nans"]->Fill(index*1., 1.);
+	  h["nans"+isuffix]->Fill(index*1., 1.);
 	  problem = true;
 	}
       }
@@ -650,4 +671,7 @@ PrimaryVertexAnalyzer::analyze(const Event& iEvent, const EventSetup& iSetup)
       }
     }// if (problem)
   }
+  
+  }
+
 }

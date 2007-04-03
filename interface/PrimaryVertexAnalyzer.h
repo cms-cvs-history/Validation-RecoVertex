@@ -13,7 +13,7 @@
 //
 // Original Author:  Wolfram Erdmann
 //         Created:  Fri Jun  2 10:54:05 CEST 2006
-// $Id: PrimaryVertexAnalyzer.h,v 1.7 2006/11/08 13:59:18 werdmann Exp $
+// $Id: PrimaryVertexAnalyzer.h,v 1.8 2006/12/21 16:33:30 werdmann Exp $
 //
 //
 
@@ -96,14 +96,17 @@ private:
   void printRecVtxs(const edm::Handle<reco::VertexCollection> recVtxs);
   void printSimVtxs(const edm::Handle<edm::SimVertexContainer> simVtxs);
   void printSimTrks(const edm::Handle<edm::SimTrackContainer> simVtrks);
-  std::vector<simPrimaryVertex> getSimPVs(const edm::Handle<edm::HepMCProduct> evtMC);
+  std::vector<simPrimaryVertex> getSimPVs(const edm::Handle<edm::HepMCProduct> evtMC,std::string suffix);
   std::vector<simPrimaryVertex> getSimPVs(const edm::Handle<edm::HepMCProduct> evt, 
 					  const edm::Handle<edm::SimVertexContainer> simVtxs, 
 					  const edm::Handle<edm::SimTrackContainer> simTrks);
   // ----------member data ---------------------------
   std::string recoTrackProducer_;
   std::string outputFile_;       // output file
-  std::string vtxSample_;        // which vertices to analyze
+  std::vector< std::string > vtxSample_;
+  std::vector< std::string > suffixSample_;
+
+  //std::string vtxSample_;        // which vertices to analyze
   TFile*  rootFile_;             
   bool verbose_;
   edm::InputTag simG4_;
