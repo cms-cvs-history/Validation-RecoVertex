@@ -1,0 +1,27 @@
+## Reco Vertex
+ 
+############ initialize magnetic field #########################
+include "MagneticField/Engine/data/volumeBasedMagneticField.cfi"
+
+include "TrackingTools/TransientTrack/data/TransientTrackBuilder.cfi"
+
+module offlinePrimaryVerticesFromCTFTracksAVF = offlinePrimaryVerticesFromCTFTracks from "RecoVertex/PrimaryVertexProducer/data/OfflinePrimaryVerticesFromCTFTracks.cfi"
+replace offlinePrimaryVerticesFromCTFTracksAVF.algorithm = "AdaptiveVertexFitter"
+
+module offlinePrimaryVerticesFromCTFTracksKVF = offlinePrimaryVerticesFromCTFTracks from "RecoVertex/PrimaryVertexProducer/data/OfflinePrimaryVerticesFromCTFTracks.cfi"
+replace offlinePrimaryVerticesFromCTFTracksKVF.algorithm = "KalmanVertexFitter"
+
+module offlinePrimaryVerticesFromCTFTracksTKF = offlinePrimaryVerticesFromCTFTracks from "RecoVertex/PrimaryVertexProducer/data/OfflinePrimaryVerticesFromCTFTracks.cfi"
+replace offlinePrimaryVerticesFromCTFTracksTKF.algorithm = "TrimmedKalmanFinder"
+
+
+#include "Validation/RecoVertex/data/OffLinePVFromRSTracks.cfi"
+ 
+sequence vertexreco = {
+	offlinePrimaryVerticesFromCTFTracksAVF, 
+	offlinePrimaryVerticesFromCTFTracksKVF,
+	offlinePrimaryVerticesFromCTFTracksTKF
+}
+
+#sequence vertexreco_rs = {offlinePrimaryVerticesFromRSTracks}
+#
