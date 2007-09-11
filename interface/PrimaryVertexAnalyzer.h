@@ -13,7 +13,7 @@
 //
 // Original Author:  Wolfram Erdmann
 //         Created:  Fri Jun  2 10:54:05 CEST 2006
-// $Id: PrimaryVertexAnalyzer.h,v 1.9 2007/03/14 10:27:05 werdmann Exp $
+// $Id: PrimaryVertexAnalyzer.h,v 1.10 2007/03/26 08:07:46 werdmann Exp $
 //
 //
 
@@ -41,6 +41,7 @@
  
 // vertex stuff
 #include <DataFormats/VertexReco/interface/Vertex.h>
+#include <DataFormats/VertexReco/interface/VertexFwd.h>
 #include "RecoVertex/VertexPrimitives/interface/TransientVertex.h"
 
 // simulated vertices,..., add <use name=SimDataFormats/Vertex> and <../Track>
