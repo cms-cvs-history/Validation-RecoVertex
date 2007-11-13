@@ -19,8 +19,8 @@ replace offlinePrimaryVerticesFromCTFTracksTKF.algorithm = "TrimmedKalmanFinder"
  
 sequence vertexreco = {
 	offlinePrimaryVerticesFromCTFTracksAVF, 
-	offlinePrimaryVerticesFromCTFTracksKVF,
-	offlinePrimaryVerticesFromCTFTracksTKF
+ 	offlinePrimaryVerticesFromCTFTracksKVF
+#	offlinePrimaryVerticesFromCTFTracksTKF
 }
 
 #sequence vertexreco_rs = {offlinePrimaryVerticesFromRSTracks}
