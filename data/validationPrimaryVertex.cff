@@ -1,7 +1,6 @@
 ## Reco Vertex
  
 ############ initialize magnetic field #########################
-include "MagneticField/Engine/data/volumeBasedMagneticField.cfi"
 
 include "TrackingTools/TransientTrack/data/TransientTrackBuilder.cfi"
 
