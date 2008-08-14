@@ -1,6 +1,0 @@
-module simpleTrackAnalysis = TrackParameterAnalyzer {
-     InputTag simG4 = g4SimHits	
-     untracked string recoTrackProducer="generalTracks"
-     untracked string outputFile="simpleTrackParameterAnalyzer.root"
-     untracked bool verbose=true
-}

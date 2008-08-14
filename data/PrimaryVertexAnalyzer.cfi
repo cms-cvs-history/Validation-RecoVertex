@@ -1,7 +1,0 @@
-module simpleVertexAnalysis = PrimaryVertexAnalyzer { 
-     InputTag simG4 = g4SimHits
-     untracked string recoTrackProducer="generalTracks"
-     untracked string outputFile="simpleVertexAnalyzer.root"
-     untracked string vtxSample="offlinePrimaryVertices"
-     untracked bool verbose=true
-}
