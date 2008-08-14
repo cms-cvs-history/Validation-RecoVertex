@@ -4,13 +4,13 @@
 
 include "TrackingTools/TransientTrack/data/TransientTrackBuilder.cfi"
 
-module offlinePrimaryVerticesFromCTFTracksAVF = offlinePrimaryVerticesFromCTFTracks from "RecoVertex/PrimaryVertexProducer/data/OfflinePrimaryVerticesFromCTFTracks.cfi"
+module offlinePrimaryVerticesFromCTFTracksAVF = offlinePrimaryVertices from "RecoVertex/PrimaryVertexProducer/data/OfflinePrimaryVertices.cfi"
 replace offlinePrimaryVerticesFromCTFTracksAVF.algorithm = "AdaptiveVertexFitter"
 
-module offlinePrimaryVerticesFromCTFTracksKVF = offlinePrimaryVerticesFromCTFTracks from "RecoVertex/PrimaryVertexProducer/data/OfflinePrimaryVerticesFromCTFTracks.cfi"
+module offlinePrimaryVerticesFromCTFTracksKVF = offlinePrimaryVertices from "RecoVertex/PrimaryVertexProducer/data/OfflinePrimaryVertices.cfi"
 replace offlinePrimaryVerticesFromCTFTracksKVF.algorithm = "KalmanVertexFitter"
 
-module offlinePrimaryVerticesFromCTFTracksTKF = offlinePrimaryVerticesFromCTFTracks from "RecoVertex/PrimaryVertexProducer/data/OfflinePrimaryVerticesFromCTFTracks.cfi"
+module offlinePrimaryVerticesFromCTFTracksTKF = offlinePrimaryVertices from "RecoVertex/PrimaryVertexProducer/data/OfflinePrimaryVertices.cfi"
 replace offlinePrimaryVerticesFromCTFTracksTKF.algorithm = "TrimmedKalmanFinder"
 
 
