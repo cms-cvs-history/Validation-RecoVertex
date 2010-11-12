@@ -1995,7 +1995,7 @@ PrimaryVertexAnalyzer4PU::analyze(const Event& iEvent, const EventSetup& iSetup)
       Fill(hnoBS,"yrecBeamvsdyXBS",recVtxs->begin()->yError(),recVtxs->begin()->y()-vertexBeamSpot_.y0());
 
       if(printXBS_) {
-	cout << Form("XBS %10d %5d %10d  %4d   %4d %5.2f    %8f %8f       %8f %8f      %8f %8f",
+	cout << Form("XBS %10d %5d %10d  %4d   %4lu %5.2f    %8f %8f       %8f %8f      %8f %8f",
 		     run_,luminosityBlock_,event_,bunchCrossing_,
       		   recVtxs->begin()->tracksSize(), recVtxs->begin()->ndof(),
       		   recVtxs->begin()->x(), 		   recVtxs->begin()->xError(), 
