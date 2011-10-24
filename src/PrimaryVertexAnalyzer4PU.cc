@@ -659,7 +659,8 @@ void PrimaryVertexAnalyzer4PU::beginJob(){
 void PrimaryVertexAnalyzer4PU::endJob() {
   std::cout << "this is void PrimaryVertexAnalyzer4PU::endJob() " << std::endl;
   //cumulate some histos
-  double sumDA=0,sumBS=0,sumnoBS=0, sumPIX=0,sumMVF=0;
+  double sumDA=0,sumBS=0,sumnoBS=0;
+  // double sumPIX=0,sumMVF=0;
   for(int i=101; i>0; i--){
     sumDA+=hDA["matchVtxFractionSignal"]->GetBinContent(i)/hDA["matchVtxFractionSignal"]->Integral();
     hDA["matchVtxFractionCumSignal"]->SetBinContent(i,sumDA);
@@ -672,7 +673,8 @@ void PrimaryVertexAnalyzer4PU::endJob() {
 //     sumMVF+=hMVF["matchVtxFractionSignal"]->GetBinContent(i)/hMVF["matchVtxFractionSignal"]->Integral();
 //     hMVF["matchVtxFractionCumSignal"]->SetBinContent(i,sumMVF);
   }
-  sumDA=0,sumBS=0,sumnoBS=0,sumPIX=0,sumMVF=0;
+  sumDA=0,sumBS=0,sumnoBS=0;
+  //sumPIX=0,sumMVF=0;
   for(int i=1; i<1001; i++){
     sumDA+=hDA["abszdistancetag"]->GetBinContent(i);
     hDA["abszdistancetagcum"]->SetBinContent(i,sumDA/float(hDA["abszdistancetag"]->GetEntries()));
@@ -1047,12 +1049,12 @@ void PrimaryVertexAnalyzer4PU::fillTrackHistos(std::map<std::string, TH1*> & h, 
       double D0=x1*sin(t.phi())-y1*cos(t.phi())-0.5*kappa*(x1*x1+y1*y1);
       double q=sqrt(1.-2.*kappa*D0);
       double s0=(x1*cos(t.phi())+y1*sin(t.phi()))/q; 
-      double s1;
+      // double s1;
       if (fabs(kappa*s0)>0.001){
-	s1=asin(kappa*s0)/kappa;
+	//s1=asin(kappa*s0)/kappa;
       }else{
-	double ks02=(kappa*s0)*(kappa*s0);
-	s1=s0*(1.+ks02/6.+3./40.*ks02*ks02+5./112.*pow(ks02,3));
+	//double ks02=(kappa*s0)*(kappa*s0);
+	//s1=s0*(1.+ks02/6.+3./40.*ks02*ks02+5./112.*pow(ks02,3));
       }
       //     sp.ddcap=-2.*D0/(1.+q);
       //double zdcap=t.vz()-s1/tan(t.theta());
@@ -1080,7 +1082,7 @@ void PrimaryVertexAnalyzer4PU::fillTrackHistos(std::map<std::string, TH1*> & h, 
 	 edm::Ref<edmNew::DetSetVector<SiPixelCluster>, SiPixelCluster> const& clust = (*pixhit).cluster();
 	 if (clust.isNonnull()) {
 	   nbarrel++;
-	   if (clust->sizeY()>longesthit) longesthit=clust->sizeY();
+	   if (clust->sizeY()-longesthit>0) longesthit=clust->sizeY();
 	   if (clust->sizeY()>20.){
 	     Fill(h,"lvseta_"+ttype,t.eta(), 19.9);
 	     Fill(h,"lvstanlambda_"+ttype,tan(t.lambda()), 19.9);
@@ -1111,7 +1113,7 @@ void PrimaryVertexAnalyzer4PU::dumpHitInfo(const reco::Track & t){
 	edm::Ref<edmNew::DetSetVector<SiPixelCluster>, SiPixelCluster> const& clust = (*pixhit).cluster();
 	if (clust.isNonnull()) {
 	  cout << Form("%4d",clust->sizeY());
-	  if (clust->sizeY()>longesthit) longesthit=clust->sizeY();
+	  if (clust->sizeY()-longesthit>0) longesthit=clust->sizeY();
 	}
       }
     }
@@ -1910,7 +1912,6 @@ void
 PrimaryVertexAnalyzer4PU::analyze(const Event& iEvent, const EventSetup& iSetup)
 {
   
-  bool MC=false;
   std::vector<simPrimaryVertex> simpv;  //  a list of primary MC vertices
   std::vector<SimPart> tsim;
   std::string mcproduct="generator";  // starting with 3_1_0 pre something
@@ -2096,7 +2097,6 @@ PrimaryVertexAnalyzer4PU::analyze(const Event& iEvent, const EventSetup& iSetup)
 
   if(gotTV){
 
-    MC=true;
     if(verbose_){
       cout << "Found Tracking Vertices " << endl;
     }
@@ -2105,7 +2105,6 @@ PrimaryVertexAnalyzer4PU::analyze(const Event& iEvent, const EventSetup& iSetup)
 
   }else if(iEvent.getByLabel(mcproduct,evtMC)){
 
-    MC=true;
     simpv=getSimPVs(evtMC);
 
     if(verbose_){
@@ -2115,7 +2114,6 @@ PrimaryVertexAnalyzer4PU::analyze(const Event& iEvent, const EventSetup& iSetup)
     tsim = PrimaryVertexAnalyzer4PU::getSimTrkParameters(simTrks, simVtxs, simUnit_);
     
   }else{
-    MC=false;
     // if(verbose_({cout << "No MC info at all" << endl;}
   }
 
@@ -2526,10 +2524,10 @@ void PrimaryVertexAnalyzer4PU::analyzeVertexCollectionTP(std::map<std::string, T
   double nfake=0;
   for(reco::VertexCollection::const_iterator v=recVtxs->begin(); 
       v!=recVtxs->end(); ++v){
-    double zmatch=-99; bool matched=false;
+    bool matched=false;
     for(vector<SimEvent>::iterator ev=simEvt.begin(); ev!=simEvt.end(); ev++){
       if ((ev->nmatch>0)&&(ev->zmatch==v->z())){
-	matched=true; zmatch=ev->z;
+	matched=true;
       }
     }
     if(!matched && !v->isFake()) {
@@ -3372,16 +3370,16 @@ void PrimaryVertexAnalyzer4PU::analyzeVertexCollection(std::map<std::string, TH1
     
     // test track links, use reconstructed vertices
       bool problem = false;
-      Fill(h,"nans",1.,isnan(v->position().x())*1.);
-      Fill(h,"nans",2.,isnan(v->position().y())*1.);
-      Fill(h,"nans",3.,isnan(v->position().z())*1.);
+      Fill(h,"nans",1.,std::isnan(v->position().x())*1.);
+      Fill(h,"nans",2.,std::isnan(v->position().y())*1.);
+      Fill(h,"nans",3.,std::isnan(v->position().z())*1.);
       
       int index = 3;
       for (int i = 0; i != 3; i++) {
 	for (int j = i; j != 3; j++) {
 	  index++;
-	  Fill(h,"nans",index*1., isnan(v->covariance(i, j))*1.);
-	  if (isnan(v->covariance(i, j))) problem = true;
+	  Fill(h,"nans",index*1., std::isnan(v->covariance(i, j))*1.);
+	  if (std::isnan(v->covariance(i, j))) problem = true;
 	  // in addition, diagonal element must be positive
 	  if (j == i && v->covariance(i, j) < 0) {
 	    Fill(h,"nans",index*1., 1.);
@@ -3445,8 +3443,8 @@ void PrimaryVertexAnalyzer4PU::analyzeVertexCollection(std::map<std::string, TH1
 	    for (i = 0; i < 5; i++) {
 	      double eval_i 
 		= gsl_vector_get (eval, i);
-	      gsl_vector_view evec_i 
-		= gsl_matrix_column (evec, i);
+	      //gsl_vector_view evec_i 
+	      //	= gsl_matrix_column (evec, i);
 	      
 	      printf ("eigenvalue = %g\n", eval_i);
 	      //	      printf ("eigenvector = \n");
