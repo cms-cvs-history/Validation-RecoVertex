@@ -34,5 +34,3 @@
 <use   name="gsl"/>
 <use   name="SimGeneral/HepPDTRecord"/>
 <flags   EDM_PLUGIN="1"/>
-<export>
-</export>
