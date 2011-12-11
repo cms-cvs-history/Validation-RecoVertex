@@ -9,6 +9,7 @@
 namespace edm {
   class ParameterSet;
   class Event;
+  class Run;
 }
 
 class TH1F;
@@ -25,23 +26,27 @@ class VertexHistogramMaker {
   ~VertexHistogramMaker();
 
   void book(const std::string dirname="");
-  void beginRun(const unsigned int nrun);
-  void fill(const unsigned int orbit, const int bx, const float bxlumi, const reco::VertexCollection& vertices, const double weight=1.);
+  void beginRun(const edm::Run& iRun);
   void fill(const edm::Event& iEvent, const reco::VertexCollection& vertices, const double weight=1.);
 
  private:
 
+  void fill(const unsigned int orbit, const int bx, const float bxlumi, const reco::VertexCollection& vertices, const double weight=1.);
+
   TFileDirectory* m_currdir;
+  const unsigned int m_maxLS;
   const double m_weightThreshold;
   const bool m_trueOnly;
   const bool m_runHisto;
   const bool m_runHistoProfile;
   const bool m_runHistoBXProfile;
+  const bool m_runHistoBXProfile2D;
   const bool m_runHisto2D;
   const bool m_bsConstrained;
   const edm::ParameterSet m_histoParameters;
 
   RunHistogramManager m_rhm;
+  RunHistogramManager m_fhm;
   TH1F* m_hnvtx;
   TH1F* m_hntruevtx;
   TProfile* m_hntruevtxvslumi;
@@ -69,11 +74,14 @@ class VertexHistogramMaker {
   TProfile** m_hvtxzvsorbrun;
   TProfile** m_hnvtxvsorbrun;
   TProfile2D** m_hnvtxvsbxvsorbrun;
+  TH2F** m_hnvtxvsorbrun2D;
 
   TProfile** m_hvtxxvsbxrun;
   TProfile** m_hvtxyvsbxrun;
   TProfile** m_hvtxzvsbxrun;
   TProfile** m_hnvtxvsbxrun;
+
+  TProfile2D** m_hnvtxvsbxvslumirun;
 
   TH2F** m_hvtxxvsbx2drun;
   TH2F** m_hvtxyvsbx2drun;

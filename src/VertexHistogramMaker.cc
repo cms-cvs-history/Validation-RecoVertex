@@ -2,6 +2,7 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/Run.h"
 #include "FWCore/Framework/interface/LuminosityBlock.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
@@ -13,22 +14,24 @@
 
 
 VertexHistogramMaker::VertexHistogramMaker():
-  m_currdir(0), m_weightThreshold(0.5), m_trueOnly(true), 
-  m_runHisto(true), m_runHistoProfile(true), m_runHistoBXProfile(true), m_runHisto2D(false), 
+  m_currdir(0), m_maxLS(100), m_weightThreshold(0.5), m_trueOnly(true), 
+  m_runHisto(true), m_runHistoProfile(true), m_runHistoBXProfile(true), m_runHistoBXProfile2D(false), m_runHisto2D(false), 
   m_bsConstrained(false),
   m_histoParameters() { }
 
 VertexHistogramMaker::VertexHistogramMaker(const edm::ParameterSet& iConfig):
   m_currdir(0),
+  m_maxLS(iConfig.getParameter<unsigned int>("maxLSBeforeRebin")),
   m_weightThreshold(iConfig.getUntrackedParameter<double>("weightThreshold",0.5)),
   m_trueOnly(iConfig.getUntrackedParameter<bool>("trueOnly",true)),
   m_runHisto(iConfig.getUntrackedParameter<bool>("runHisto",true)),
   m_runHistoProfile(iConfig.getUntrackedParameter<bool>("runHistoProfile",true)),
   m_runHistoBXProfile(iConfig.getUntrackedParameter<bool>("runHistoBXProfile",true)),
+  m_runHistoBXProfile2D(iConfig.getUntrackedParameter<bool>("runHistoBXProfile2D",false)),
   m_runHisto2D(iConfig.getUntrackedParameter<bool>("runHisto2D",false)),
   m_bsConstrained(iConfig.getParameter<bool>("bsConstrained")),
   m_histoParameters(iConfig.getUntrackedParameter<edm::ParameterSet>("histoParameters",edm::ParameterSet())),
-  m_rhm()
+  m_rhm(false),m_fhm(true)
 { }
 
 
@@ -51,37 +54,37 @@ void VertexHistogramMaker::book(const std::string dirname) {
 
   edm::LogInfo("HistogramBooking") << "Vertex histogram booking in directory " << dirname;
 
-  m_hnvtx = currdir->make<TH1F>("nvtx","Number of Vertices",40,-0.5,39.5);
+  m_hnvtx = currdir->make<TH1F>("nvtx","Number of Vertices",60,-0.5,59.5);
   m_hnvtx->GetXaxis()->SetTitle("vertices");   m_hnvtx->GetYaxis()->SetTitle("Events"); 
 
-  m_hntruevtx = currdir->make<TH1F>("ntruevtx","Number of True Vertices",40,-0.5,39.5);
+  m_hntruevtx = currdir->make<TH1F>("ntruevtx","Number of True Vertices",60,-0.5,59.5);
   m_hntruevtx->GetXaxis()->SetTitle("vertices");   m_hntruevtx->GetYaxis()->SetTitle("Events"); 
 
-  m_hntruevtxvslumi = currdir->make<TProfile>("ntruevtxvslumi","Number of True Vertices vs BX lumi",125,-0.,5.);
-  m_hntruevtxvslumi->GetXaxis()->SetTitle("BX lumi [*10^30 cm-2s-1]");   m_hntruevtxvslumi->GetYaxis()->SetTitle("Vertices"); 
+  m_hntruevtxvslumi = currdir->make<TProfile>("ntruevtxvslumi","Number of True Vertices vs BX lumi",250,0.,10.);
+  m_hntruevtxvslumi->GetXaxis()->SetTitle("BX lumi [10^{30}cm^{-2}s^{-1}]");   m_hntruevtxvslumi->GetYaxis()->SetTitle("Vertices"); 
 
-  m_hntruevtxvslumi2D = currdir->make<TH2D>("ntruevtxvslumi2D","Number of True Vertices vs BX lumi",125,0.,5.,100,-0.5,99.5);
-  m_hntruevtxvslumi2D->GetXaxis()->SetTitle("BX lumi [*10^30 cm-2s-1]");   m_hntruevtxvslumi2D->GetYaxis()->SetTitle("Vertices"); 
+  m_hntruevtxvslumi2D = currdir->make<TH2D>("ntruevtxvslumi2D","Number of True Vertices vs BX lumi",250,0.,10.,100,-0.5,99.5);
+  m_hntruevtxvslumi2D->GetXaxis()->SetTitle("BX lumi [10^{30}cm^{-2}s^{-1}]");   m_hntruevtxvslumi2D->GetYaxis()->SetTitle("Vertices"); 
 
-  m_hntracks = currdir->make<TH1F>("ntracks","Number of Tracks",200,-0.5,199.5);
+  m_hntracks = currdir->make<TH1F>("ntracks","Number of Tracks",300,-0.5,299.5);
   m_hntracks->GetXaxis()->SetTitle("tracks");   m_hntracks->GetYaxis()->SetTitle("Vertices"); 
 
   m_hsqsumptsq = currdir->make<TH1F>("sqsumptsq","sqrt(sum pt**2)",1000,0.,1000.);
-  m_hsqsumptsq->GetXaxis()->SetTitle("sqrt(sum pt**2) (GeV)");   m_hsqsumptsq->GetYaxis()->SetTitle("Vertices"); 
+  m_hsqsumptsq->GetXaxis()->SetTitle("sqrt(#Sigma pt^{2}) (GeV)");   m_hsqsumptsq->GetYaxis()->SetTitle("Vertices"); 
 
   char htitle[300];
   sprintf(htitle,"sqrt(sum pt**2) of Tracks weight > %f",m_weightThreshold);
   m_hsqsumptsqheavy = currdir->make<TH1F>("sqsumptsqheavy",htitle,1000,0.,1000.);
-  m_hsqsumptsqheavy->GetXaxis()->SetTitle("sqrt(sum pt**2) (GeV)");   m_hsqsumptsqheavy->GetYaxis()->SetTitle("Vertices"); 
+  m_hsqsumptsqheavy->GetXaxis()->SetTitle("sqrt(#Sigma pt^{2}) (GeV)");   m_hsqsumptsqheavy->GetYaxis()->SetTitle("Vertices"); 
 
   sprintf(htitle,"Number of Tracks weight > %f",m_weightThreshold);
   m_hnheavytracks = currdir->make<TH1F>("nheavytracks",htitle,200,-0.5,199.5);
   m_hnheavytracks->GetXaxis()->SetTitle("tracks");   m_hnheavytracks->GetYaxis()->SetTitle("Vertices"); 
 
-  m_hndof = currdir->make<TH1F>("ndof","Number of degree of freedom",200,-0.5,399.5);
+  m_hndof = currdir->make<TH1F>("ndof","Number of degree of freedom",250,-0.5,499.5);
   m_hndof->GetXaxis()->SetTitle("ndof");   m_hndof->GetYaxis()->SetTitle("Vertices"); 
 
-  m_hndofvstracks = currdir->make<TH2F>("ndofvstracks","Ndof vs Ntracks",200,-0.5,199.5,200,-0.5,399.5);
+  m_hndofvstracks = currdir->make<TH2F>("ndofvstracks","Ndof vs Ntracks",300,-0.5,299.5,250,-0.5,499.5);
   m_hndofvstracks->GetXaxis()->SetTitle("tracks");   m_hndofvstracks->GetYaxis()->SetTitle("ndof"); 
 
   m_hndofvsvtxz = currdir->make<TProfile>("ndofvsvtxz","Ndof vs Vertex Z position",200,
@@ -149,30 +152,39 @@ void VertexHistogramMaker::book(const std::string dirname) {
 			      m_histoParameters.getUntrackedParameter<double>("zMax",20.));
     
     if(m_runHistoProfile) {
-      m_hvtxxvsorbrun = m_rhm.makeTProfile("vtxxvsorbrun","Vertex X position vs orbit number",1600,0.5,1600.*16384+0.5);
-      m_hvtxyvsorbrun = m_rhm.makeTProfile("vtxyvsorbrun","Vertex Y position vs orbit number",1600,0.5,1600.*16384+0.5);
-      m_hvtxzvsorbrun = m_rhm.makeTProfile("vtxzvsorbrun","Vertex Z position vs orbit number",1600,0.5,1600.*16384+0.5);
-      m_hnvtxvsorbrun = m_rhm.makeTProfile("nvtxvsorbrun","Number of true vertices vs orbit number",100,0.5,100.*262144+0.5);
+      m_hvtxxvsorbrun = m_rhm.makeTProfile("vtxxvsorbrun","Vertex X position vs orbit number",16*m_maxLS,0.5,16*m_maxLS*16384+0.5);
+      m_hvtxyvsorbrun = m_rhm.makeTProfile("vtxyvsorbrun","Vertex Y position vs orbit number",16*m_maxLS,0.5,16*m_maxLS*16384+0.5);
+      m_hvtxzvsorbrun = m_rhm.makeTProfile("vtxzvsorbrun","Vertex Z position vs orbit number",16*m_maxLS,0.5,16*m_maxLS*16384+0.5);
+      m_hnvtxvsorbrun = m_rhm.makeTProfile("nvtxvsorbrun","Number of true vertices vs orbit number",m_maxLS,0.5,m_maxLS*262144+0.5);
     }
     
-    if(m_runHisto2D) m_hnvtxvsbxvsorbrun = m_rhm.makeTProfile2D("nvtxvsbxvsorbrun","Number of true vertices vs BX vs orbit number",
-							     3564,-0.5,3563.5,100,0.5,100.*262144+0.5);
+    if(m_runHisto2D) {
+      m_hnvtxvsbxvsorbrun = m_rhm.makeTProfile2D("nvtxvsbxvsorbrun","Number of true vertices vs BX vs orbit number",
+						 3564,-0.5,3563.5,m_maxLS,0.5,m_maxLS*262144+0.5);
+      m_hnvtxvsorbrun2D = m_rhm.makeTH2F("nvtxvsorbrun2D","Number of true vertices vs orbit number",
+					 m_maxLS,0.5,m_maxLS*262144+0.5,60,-0.5,59.5);
+    }
+
     if(m_runHistoBXProfile) {
-      m_hvtxxvsbxrun = m_rhm.makeTProfile("vtxxvsbxrun","Vertex X position vs BX number",3564,-0.5,3563.5);
-      m_hvtxyvsbxrun = m_rhm.makeTProfile("vtxyvsbxrun","Vertex Y position vs BX number",3564,-0.5,3563.5);
-      m_hvtxzvsbxrun = m_rhm.makeTProfile("vtxzvsbxrun","Vertex Z position vs BX number",3564,-0.5,3563.5);
+      m_hvtxxvsbxrun = m_fhm.makeTProfile("vtxxvsbxrun","Vertex X position vs BX number",3564,-0.5,3563.5);
+      m_hvtxyvsbxrun = m_fhm.makeTProfile("vtxyvsbxrun","Vertex Y position vs BX number",3564,-0.5,3563.5);
+      m_hvtxzvsbxrun = m_fhm.makeTProfile("vtxzvsbxrun","Vertex Z position vs BX number",3564,-0.5,3563.5);
+
       m_hnvtxvsbxrun = m_rhm.makeTProfile("nvtxvsbxrun","Number of true vertices vs BX number",3564,-0.5,3563.5);
 
+      if(m_runHistoBXProfile2D) {
+	m_hnvtxvsbxvslumirun = m_fhm.makeTProfile2D("nvtxvsbxvslumirun","Number of vertices vs BX and BX lumi",3564,-0.5,3563.5,250,0.,10.);
+      }
       if(m_runHisto2D) {
-	m_hvtxxvsbx2drun = m_rhm.makeTH2F("vtxxvsbx2drun","Vertex X position vs BX number",3564,-0.5,3563.5,
+	m_hvtxxvsbx2drun = m_fhm.makeTH2F("vtxxvsbx2drun","Vertex X position vs BX number",3564,-0.5,3563.5,
 					m_histoParameters.getUntrackedParameter<unsigned int>("nBinX",200),
 					m_histoParameters.getUntrackedParameter<double>("xMin",-1.),
 					m_histoParameters.getUntrackedParameter<double>("xMax",1.));
-	m_hvtxyvsbx2drun = m_rhm.makeTH2F("vtxyvsbx2drun","Vertex Y position vs BX number",3564,-0.5,3563.5,
+	m_hvtxyvsbx2drun = m_fhm.makeTH2F("vtxyvsbx2drun","Vertex Y position vs BX number",3564,-0.5,3563.5,
 					m_histoParameters.getUntrackedParameter<unsigned int>("nBinY",200),
 					m_histoParameters.getUntrackedParameter<double>("yMin",-1.),
 					m_histoParameters.getUntrackedParameter<double>("yMax",1.));
-	m_hvtxzvsbx2drun = m_rhm.makeTH2F("vtxzvsbx2drun","Vertex Z position vs BX number",3564,-0.5,3563.5,
+	m_hvtxzvsbx2drun = m_fhm.makeTH2F("vtxzvsbx2drun","Vertex Z position vs BX number",3564,-0.5,3563.5,
 					m_histoParameters.getUntrackedParameter<unsigned int>("nBinZ",200),
 					m_histoParameters.getUntrackedParameter<double>("zMin",-20.),
 					m_histoParameters.getUntrackedParameter<double>("zMax",20.));
@@ -183,7 +195,7 @@ void VertexHistogramMaker::book(const std::string dirname) {
   }
 }
 
-void VertexHistogramMaker::beginRun(const unsigned int nrun) {
+void VertexHistogramMaker::beginRun(const edm::Run& iRun) {
 
   TFileDirectory* currdir = m_currdir;
   if(currdir==0) {
@@ -191,7 +203,9 @@ void VertexHistogramMaker::beginRun(const unsigned int nrun) {
     currdir = &(*tfserv);
   }
 
-  m_rhm.beginRun(nrun,*currdir);
+  m_rhm.beginRun(iRun,*currdir);
+  m_fhm.beginRun(iRun,*currdir);
+
 
   if(m_runHisto) {
     (*m_hvtxxrun)->GetXaxis()->SetTitle("X [cm]");   (*m_hvtxxrun)->GetYaxis()->SetTitle("Vertices"); 
@@ -214,6 +228,9 @@ void VertexHistogramMaker::beginRun(const unsigned int nrun) {
       (*m_hvtxyvsbxrun)->GetXaxis()->SetTitle("BX");   (*m_hvtxyvsbxrun)->GetYaxis()->SetTitle("Y [cm]"); 
       (*m_hvtxzvsbxrun)->GetXaxis()->SetTitle("BX");   (*m_hvtxzvsbxrun)->GetYaxis()->SetTitle("Z [cm]"); 
       (*m_hnvtxvsbxrun)->GetXaxis()->SetTitle("BX");   (*m_hnvtxvsbxrun)->GetYaxis()->SetTitle("Nvertices"); 
+      if(m_runHistoBXProfile2D) {
+	(*m_hnvtxvsbxvslumirun)->GetXaxis()->SetTitle("BX");   (*m_hnvtxvsbxvslumirun)->GetYaxis()->SetTitle("BX lumi [10^{30}cm^{-2}s^{-1}]"); 
+      }
       if(m_runHisto2D) {
 	(*m_hvtxxvsbx2drun)->GetXaxis()->SetTitle("BX");   (*m_hvtxxvsbx2drun)->GetYaxis()->SetTitle("X [cm]"); 
 	(*m_hvtxyvsbx2drun)->GetXaxis()->SetTitle("BX");   (*m_hvtxyvsbx2drun)->GetYaxis()->SetTitle("Y [cm]"); 
@@ -224,6 +241,8 @@ void VertexHistogramMaker::beginRun(const unsigned int nrun) {
     if(m_runHisto2D) {
       (*m_hnvtxvsbxvsorbrun)->GetXaxis()->SetTitle("BX#"); (*m_hnvtxvsbxvsorbrun)->GetYaxis()->SetTitle("time [orbit#]"); 
       (*m_hnvtxvsbxvsorbrun)->SetBit(TH1::kCanRebin);
+      (*m_hnvtxvsorbrun2D)->GetXaxis()->SetTitle("time [orbit#]");   (*m_hnvtxvsorbrun2D)->GetYaxis()->SetTitle("Nvertices"); 
+      (*m_hnvtxvsorbrun2D)->SetBit(TH1::kCanRebin);
     }
   }
 }
@@ -314,9 +333,17 @@ void VertexHistogramMaker::fill(const unsigned int orbit, const int bx, const fl
     }
     if(m_runHistoBXProfile) {
       if(m_hnvtxvsbxrun && *m_hnvtxvsbxrun )  (*m_hnvtxvsbxrun)->Fill(bx,ntruevtx,weight);
+      if(m_runHistoBXProfile2D) {
+	if(m_hnvtxvsbxvslumirun && *m_hnvtxvsbxvslumirun && bxlumi >= 0.)  (*m_hnvtxvsbxvslumirun)->Fill(bx,bxlumi,ntruevtx,weight);
+      }
     }
     if(m_runHisto2D) {
       if(m_hnvtxvsbxvsorbrun && *m_hnvtxvsbxvsorbrun )  (*m_hnvtxvsbxvsorbrun)->Fill(bx,orbit,ntruevtx,weight);
+      if(m_hnvtxvsorbrun2D && *m_hnvtxvsorbrun2D )  {
+	if(ntruevtx < (*m_hnvtxvsorbrun2D)->GetYaxis()->GetXmax() && ntruevtx > (*m_hnvtxvsorbrun2D)->GetYaxis()->GetXmin()) {
+	  (*m_hnvtxvsorbrun2D)->Fill(orbit,ntruevtx,weight);
+	}
+      }
     }
   }
 
@@ -324,6 +351,13 @@ void VertexHistogramMaker::fill(const unsigned int orbit, const int bx, const fl
 }
 
 void VertexHistogramMaker::fill(const edm::Event& iEvent, const reco::VertexCollection& vertices, const double weight) {
+
+  TFileDirectory* currdir = m_currdir;
+  if(currdir==0) {
+    edm::Service<TFileService> tfserv;
+    currdir = &(*tfserv);
+  }
+
 
   // get luminosity
 
