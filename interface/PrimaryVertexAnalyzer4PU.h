@@ -29,6 +29,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include "FWCore/Utilities/interface/InputTag.h"
 
 //generator level
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
@@ -361,5 +362,6 @@ private:
   double wxy2_;
   edm::Handle<reco::BeamSpot> recoBeamSpotHandle_;
   edm::ESHandle<TransientTrackBuilder> theB_;
+  edm::InputTag beamSpot_;
 };
 
