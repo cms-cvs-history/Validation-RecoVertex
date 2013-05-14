@@ -2029,8 +2029,8 @@ PrimaryVertexAnalyzer4PU::analyze(const Event& iEvent, const EventSetup& iSetup)
 
   edm::Handle<TrackingParticleCollection>  TPCollectionH ;
   edm::Handle<TrackingVertexCollection>    TVCollectionH ;
-  bool gotTP=iEvent.getByLabel("mergedtruth","MergedTrackTruth",TPCollectionH);
-  bool gotTV=iEvent.getByLabel("mergedtruth","MergedTrackTruth",TVCollectionH);
+  bool gotTP=iEvent.getByLabel("mix","MergedTrackTruth",TPCollectionH);
+  bool gotTV=iEvent.getByLabel("mix","MergedTrackTruth",TVCollectionH);
 
 
   iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theB_);
