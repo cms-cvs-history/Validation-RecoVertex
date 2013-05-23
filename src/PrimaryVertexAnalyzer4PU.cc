@@ -1392,7 +1392,7 @@ void PrimaryVertexAnalyzer4PU::printPVTrks(const Handle<reco::TrackCollection> &
 	cout << " " << tpr->eventId().event();
 	cout << " " << setw(5) << tpr->pdgId();
 	cout << " " << setw(8) << setprecision(4) << vz;
-      }catch (...){
+      }catch (cms::Exception& e){
 	cout << " not matched";
       }
     }else{
@@ -1534,7 +1534,7 @@ bool PrimaryVertexAnalyzer4PU::truthMatchedTrack( edm::RefToBase<reco::Track> tr
 	f=it->second;
       }
     }
-  } catch (Exception event) {
+  } catch (cms::Exception& e) {
     // silly way of testing whether track is in r2s_
   }
   
@@ -1941,7 +1941,7 @@ PrimaryVertexAnalyzer4PU::analyze(const Event& iEvent, const EventSetup& iSetup)
 
    try{
     iSetup.getData(pdt_);
-  }catch(const Exception&){
+   }catch(cms::Exception& e){
     std::cout << "Some problem occurred with the particle data table. This may not work !" <<std::endl;
   }
 
@@ -3401,7 +3401,7 @@ void PrimaryVertexAnalyzer4PU::analyzeVertexCollection(std::map<std::string, TH1
 	    Fill(h,"tklinks",1.);
 	  }
 	}
-      } catch (...) {
+      } catch (cms::Exception& e) {
 	// exception thrown when trying to use linked track
 	Fill(h,"tklinks",0.);
       }
@@ -3456,7 +3456,7 @@ void PrimaryVertexAnalyzer4PU::analyzeVertexCollection(std::map<std::string, TH1
 	  }
 	  }
 	}
-      catch (...) {
+	catch (cms::Exception& e) {
 	// exception thrown when trying to use linked track
 	break;
       }// catch()
